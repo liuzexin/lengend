@@ -1,0 +1,3 @@
+cd ./nginx-1.0.14
+./configure --add-module=../mytest
+make && make install 1>/dev/null 
