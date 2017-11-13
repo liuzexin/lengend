@@ -20,7 +20,7 @@ static nginx_command_t ngx_http_mytest_commands[] = {
 		NULL
 	},
 	ngx_null_command
-}
+};
 
 static ngx_http_module_t ngx_http_mytest_module_ctx = {
 	
@@ -33,7 +33,7 @@ static ngx_http_module_t ngx_http_mytest_module_ctx = {
 	NULL,
 	NULL,
 	
-}
+};
 
 
 ngx_module_t ngx_http_mytest_module = {
