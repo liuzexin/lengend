@@ -6,19 +6,17 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 
-static ngx_int_t ngx_http_mytest_handler(ngx_http_request_t *r);
+//static ngx_int_t ngx_http_mytest_handler(ngx_http_request_t *r);
 
 
 
 static nginx_command_t ngx_http_mytest_commands[] = {
-	{
-		ngx_string("mytest"),
-		NGX_HTPP_MAIN_CONF|NGX_HTPP_LOC_CONF,
-		ngx_http_mytest,
-		NGX_HTTP_LOC_CONF_OFFSET,
-		0,
-		NULL
-	},
+	{ngx_string("mytest"),
+	 NGX_HTPP_MAIN_CONF|NGX_HTPP_LOC_CONF,
+     ngx_http_mytest,
+	 NGX_HTTP_LOC_CONF_OFFSET,
+	 0,
+     NULL},
 	ngx_null_command
 };
 
@@ -33,6 +31,8 @@ static ngx_http_module_t ngx_http_mytest_module_ctx = {
 	NULL,
 	NULL,
 	
+    NULL,
+    NULL
 };
 
 
