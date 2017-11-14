@@ -59,7 +59,7 @@ static ngx_int_t ngx_http_mytest_handler(ngx_http_request_t * r){
     //out.next = NULL;
     ngx_str_t  *ct;
     ct->data = (u_char *)"applicaiton/json";
-    ctx->len = sizeof("applicaiton/json") - 1;
+    ct->len = sizeof("applicaiton/json") - 1;
     ngx_str_t data;
     data.data = (u_char *)"{data:\"Hello world\"}";
     data.len = sizeof("{data:\"Hello world\"}") - 1;
