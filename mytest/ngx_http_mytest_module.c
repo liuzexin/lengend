@@ -54,10 +54,11 @@ static ngx_int_t ngx_http_mytest_handler(ngx_http_request_t * r){
 	ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
                    "http mytest: \"%s\"", (char *)"Test");
 
-    r->headers_out.status=NGX_HTTP_OK;
+    //r->headers_out.status=NGX_HTTP_OK;
     //ngx_chain_t   out;
     //out.next = NULL;
-    ngx_str_t  *ct = ngx_string("applicaiton/json");
+    ngx_uint_t  status = 200;
+    ngx_str_t  ct = ngx_string("applicaiton/json");
     ngx_str_t data = ngx_string("{data:\"Hello world\"}");
     ngx_http_complex_value_t val = {
     	data,
@@ -65,7 +66,7 @@ static ngx_int_t ngx_http_mytest_handler(ngx_http_request_t * r){
     	NULL,
     	NULL
     };
-    ngx_http_send_response(r, (ngx_uint_t)200, ct, &val);
+    ngx_http_send_response(r,  status, &ct, &val);
 	return NGX_OK;
 }
 
