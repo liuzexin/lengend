@@ -57,9 +57,20 @@ static ngx_int_t ngx_http_mytest_handler(ngx_http_request_t * r){
     r->headers_out.status=NGX_HTTP_OK;
     //ngx_chain_t   out;
     //out.next = NULL;
-    ngx_http_send_header(r);
+    ngx_str_t  *ct;
+    ct->data = (u_char *)"applicaiton/json";
+    ctx->len = sizeof("applicaiton/json") - 1;
+    ngx_str_t data;
+    data.data = (u_char *)"{data:\"Hello world\"}";
+    data.len = sizeof("{data:\"Hello world\"}") - 1;
+    ngx_http_complex_value_t val = {
+    	data,
+    	NULL,
+    	NULL,
+    	NULL
+    };
+    ngx_http_send_response(r, (ngx_uint_int)200, ct, &val);
 	return NGX_OK;
-    //return ngx_http_output_filter(r, &out);
 }
 
 
