@@ -57,12 +57,8 @@ static ngx_int_t ngx_http_mytest_handler(ngx_http_request_t * r){
     r->headers_out.status=NGX_HTTP_OK;
     //ngx_chain_t   out;
     //out.next = NULL;
-    ngx_str_t  *ct;
-    ct->data = (u_char *)"applicaiton/json";
-    ct->len = sizeof("applicaiton/json") - 1;
-    ngx_str_t data;
-    data.data = (u_char *)"{data:\"Hello world\"}";
-    data.len = sizeof("{data:\"Hello world\"}") - 1;
+    ngx_str_t  *ct = ngx_string("applicaiton/json");
+    ngx_str_t data = ngx_string("{data:\"Hello world\"}");
     ngx_http_complex_value_t val = {
     	data,
     	NULL,
