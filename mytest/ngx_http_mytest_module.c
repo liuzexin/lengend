@@ -69,7 +69,7 @@ static ngx_int_t ngx_http_mytest_handler(ngx_http_request_t * r){
     	NULL,
     	NULL
     };
-    ngx_http_send_response(r, (ngx_uint_int)200, ct, &val);
+    ngx_http_send_response(r, (ngx_uint_t)200, ct, &val);
 	return NGX_OK;
 }
 
