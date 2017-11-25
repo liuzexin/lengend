@@ -7,7 +7,11 @@
 #include <ngx_http.h>
 
 #define LUS_CONNECTION_TIMEOUT 600;
-static char *ngx_http_lupstrea(mngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_http_lupstream(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+
+static void lupstream_finalize_request(ngx_http_request_t *r, ngx_int_t rc);
+static ngx_int_t lupstream_create_request(ngx_http_request_t *r);
+static ngx_int_t lupstream_process_header(ngx_http_request_t *r);
 
 typedef struct {
 	ngx_http_upstream_conf_t us;
@@ -55,22 +59,12 @@ ngx_module_t ngx_http_lupstream_module = {
 };
 
 static ngx_int_t ngx_http_lupstream_handler(ngx_http_request_t * r){
-	ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
-                   "http lupstream: \"%s\"", (char *)"Test");
 
-    //r->headers_out.status=NGX_HTTP_OK;
-    //ngx_chain_t   out;
-    //out.next = NULL;
-    ngx_uint_t  status = 200;
-    ngx_str_t  ct = ngx_string("applicaiton/json");
-    ngx_str_t data = ngx_string("{data:\"Hello world\"}");
-    ngx_http_complex_value_t val = {
-    	data,
-    	NULL,
-    	NULL,
-    	NULL
-    };
-    ngx_http_send_response(r,  status, &ct, &val);
+    r->upstream->create_request = lupstream_create_request;
+    r->upstream->finalize_request = lupstream_finalize_request;
+    r->upstream->process_header = lupstream_process_header;
+    r->main->count++;//ref counter
+    ngx_http_upstream_init(r);
 	return NGX_OK;
 }
 
@@ -123,3 +117,50 @@ static char* ngx_http_lupstream(ngx_conf_t *cf, ngx_command_t*cmd, void *conf){
 	return NGX_CONF_OK;
 }
 
+
+void lupstream_finalize_request(ngx_http_request_t *r, ngx_int_t rc){
+
+}
+ngx_int_t lupstream_create_request(ngx_http_request_t *r){
+	static ngx_str_t str q = ngx_string('GET / HTTP/1.1\r\nHost: www.baidu.com\r\nConnection:close\r\n\r\n');
+	ngx_buf_t *b = ngx_create_temp_buf(r->pool, q.len);
+	if (b == NULL){
+		return NGX_ERROR;
+	}
+	b->last = p->pos + q.len;
+	ngx_snprintf(b->pos, q.len, (char *)q.data);
+
+	r->upstream->request_bufs = ngx_alloc_chain_link(r->pool);
+	if (r->upstream->request_bufs == NULL){
+		return NGX_ERROR;
+	}
+
+	r->upstream->reques_bufs->buf = b;
+	r->upstream->reques_bufs->next = NULL;
+
+	r->upstream->request_sent = 0;
+	r->upstream->header_sent = 0
+
+	r->header_hash = 1;
+	return NGX_OK;
+}
+
+/**
+	The main utility only deal with http status code.
+**/
+ngx_int_t lupstream_process_header(ngx_http_request_t *r){
+	u = r->upstream;
+	rc = ngx_http_parse_status_line(r, &u->buffer, &ctx->status);
+
+	if (u->state){
+		u->state->status = ctx->status.code;
+	}
+
+	u->headers_in.status_n = ctx->status.code;
+	u->headers_in.status_line.len = ctx->status.end - ctx->status.start;
+	if (u->headers_in.status_line.data == NULL){
+		return NGX_ERROR;
+	}
+
+	//TODO:process header.
+}
