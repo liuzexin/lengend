@@ -58,7 +58,7 @@ static ngx_int_t ngx_http_mytest_handler(ngx_http_request_t * r){
     //ngx_chain_t   out;
     //out.next = NULL;
     ngx_uint_t  status = 200;
-    ngx_str_t  ct = ngx_string("applicaiton/json");
+    ngx_str_t  ct = ngx_string("application/json");
     ngx_str_t data = ngx_string("{data:\"Hello world\"}");
     ngx_http_complex_value_t val = {
     	data,

@@ -13,9 +13,10 @@ static void lupstream_finalize_request(ngx_http_request_t *r, ngx_int_t rc);
 static ngx_int_t lupstream_create_request(ngx_http_request_t *r);
 static ngx_int_t lupstream_process_header(ngx_http_request_t *r);
 
-typedef struct {
-	ngx_http_upstream_conf_t us;
-} ngx_http_lupstream_conf_t;
+typedef struct  {
+	ngx_http_status_t status;
+	
+} ngx_http_lupstream_ctx_t;
 
 static ngx_command_t ngx_http_lupstream_commands[] = {
 	{ngx_string("lupstream"),
@@ -60,12 +61,44 @@ ngx_module_t ngx_http_lupstream_module = {
 
 static ngx_int_t ngx_http_lupstream_handler(ngx_http_request_t * r){
 
+	if(ngx_http_upstream_create(r) != NGX_OK){
+		ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
+			"Lupstream :Create upstream error");
+		return NGX_ERROR;
+	}
+
+	ngx_http_lupstream_conf_t *lcf = (ngx_http_lupstream_conf_t *)
+	ngx_http_get_module_loc_conf(r, ngx_http_lupstream_module_t);
+	ngx_http_upstream_t *u = r->upstream;
+	u->conf = & lcf->us;
+	u->buffering = lcf->us.buffering;
+
+	u->resolved = (ngx_http_upstream_resolved_t *)ngx_pcalloc(r->pool, sizeof(ngx_http_upstream_resolved_t));
+	if (u->resolved == NULL){
+		gx_log_error(NGX_LOG_ERR, r->connection->log, 0, 
+			"Lupstream :Create upstream error %s", strerror(errno));
+		return NGX_ERROR;
+	}
+
+	static struct sockaddr_in backendScokAddr;
+	struct  hostent * pHost = gethostbyname((char *) "www.baidu.com");
+	backendScokAddr.sin_family = AF_INET;
+	backendScokAddr.sin_port = htons((in_port_t) 80);
+	char * pDmsIP = inet_ntoa(* (struct in_addr *) (pHost->h_addr_list[0]));
+
+	backendScokAddr.sin_addr.s_addr = inet_addr(pDmsIP);
+	u->resolved->sockaddr = (struct sockaddr*) &backendScokAddr;
+	u->resolved->socklen = sizeof(struct sockaddr_in);
+	u->resolved->naddrs = 1;
+
+	// ngx_http_lupstream_ctx_t * lt = ngx_http_get_module_ctx(r, ngx_http_lupstream_module);
+
     r->upstream->create_request = lupstream_create_request;
     r->upstream->finalize_request = lupstream_finalize_request;
     r->upstream->process_header = lupstream_process_header;
     r->main->count++;//ref counter
     ngx_http_upstream_init(r);
-	return NGX_OK;
+	return NGX_DONE;
 }
 
 static void * ngx_http_lupstream_create_loc_conf(ngx_conf_t *cf){
@@ -112,14 +145,15 @@ static char * ngx_http_lupstream_merge_loc_conf(ngx_conf_t *cf, void * parent, v
 
 static char* ngx_http_lupstream(ngx_conf_t *cf, ngx_command_t*cmd, void *conf){
 	ngx_http_core_loc_conf_t *clcf;
-	clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
+	clcf = ngx_http_get_module_loc_conf(cf, ngx_http_core_module);
 	clcf->handler = ngx_http_lupstream_handler;
 	return NGX_CONF_OK;
 }
 
 
-void lupstream_finalize_request(ngx_http_request_t *r, ngx_int_t rc){
-
+static void lupstream_finalize_request(ngx_http_request_t *r, ngx_int_t rc){
+	ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, 
+		"LUPSTREAM");
 }
 ngx_int_t lupstream_create_request(ngx_http_request_t *r){
 	static ngx_str_t str q = ngx_string('GET / HTTP/1.1\r\nHost: www.baidu.com\r\nConnection:close\r\n\r\n');
@@ -163,4 +197,5 @@ ngx_int_t lupstream_process_header(ngx_http_request_t *r){
 	}
 
 	//TODO:process header.
+
 }
