@@ -182,9 +182,8 @@ ngx_int_t lupstream_create_request(ngx_http_request_t *r){
 /**
 	The main utility only deal with http status code.
 **/
-ngx_int_t lupstream_process_header(ngx_http_request_t *r){
+static ngx_int_t lupstream_process_header(ngx_http_request_t *r){
 	u = r->upstream;
-	rc = ngx_http_parse_status_line(r, &u->buffer, &ctx->status);
 
 	if (u->state){
 		u->state->status = ctx->status.code;
@@ -197,5 +196,82 @@ ngx_int_t lupstream_process_header(ngx_http_request_t *r){
 	}
 
 	//TODO:process header.
+	ngx_table_elt_t *h;
+	ngx_http_upstream_header_t *hh;
 
+	for (;;){
+		rc = ngx_parse_header_line(&r->upstream->headers_in.headers);
+		if (rc == NGX_OK){
+			h = ngx_list_push(&r->upstream->buffer, 1);
+			if (h == NULL)
+			{
+				return NGX_ERROR;
+			}
+		}
+		h->hash = r->header_hash;
+
+		h->key.len = r->header_name_end - r->header_name_start;
+		h->value.len = r->header_end - r->header_start;
+
+		h->key.data = ngx_pcalloc(r->pool, h->key.len * 2 + 2 + h->value.len);
+		if (h->key.data == NULL){
+			return NGX_ERROR;
+		}
+		h->value.data = h->key.data + h->key.len + 1;
+		h->lowcase_key = h->key.data + h->key.len + 1 + h->value.len + 1;
+
+		ngx_memcpy(h->key.data, r->header_name_start, h->key.len);
+		h->key.data[h->key.len] = '\0';
+		ngx_memcpy(h->value.data, r->header_start, h->value.len);
+		h->value.data[h->value.len] = '\0';
+		
+		if (h->key.len == r->lowcase_index){
+			ngx_memcpy(h->lowcase_key, r->lowcase_header, h->key_len);
+		}else{
+			ngx_strlow(h->lowcase_key, h->key.data, h->key_len);
+		}
+
+		hh = ngx_hash_find(&umcf->headers_in_hash, h->hash,
+			h->lowcase_key,h->key_len);
+
+		if (hh && hh->handler(r, h, hh->offset) != NGX_OK){
+			return NGX_ERROR;
+		}
+		continue;
+
+		if(NGX_HTTP_PARSE_HEADER_DONE){
+
+			if (r->upstream->headers_in.server == NULL)
+			{
+				h = ngx_list_push(&r->upstream->headers_in.headers);
+				if (h == NULL){
+					return NGX_ERROR;
+				}
+				h->hash = ngx_hash(ngx_hash(ngx_hash(ngx_hash(ngx_hash('s', 'e'), 'r'), 'v'), 'e'), 'r');
+				ngx_str_set(&h->key, "Server");
+				ngx_str_null(&h->value);
+				h->lowcase_key = (u_char *)"server";
+			}
+
+			if (r->upstream->headers_in.date == NULL)
+			{
+				h = ngx_list_push(&r->upstream->headers_in.headers);
+				if (h == NULL){
+					return NGX_ERROR;
+				}
+				h->hash = ngx_hash(ngx_hash(ngx_hash('d', 'a'), 't'), 'e');
+				ngx_str_set(&h->key, "Date");
+				ngx_str_null(&h->value);
+				h->lowcase_key = (u_char *)"date";
+			}
+			return NGX_OK;
+		}
+
+		if (rc == NGX_AGIN){
+			return rc;
+		}
+		ngx_log_error(NGX_LOG_ERR, r->connection->log,
+			0, 'invalid heaeder!');
+		return NGX_HTTP_UPSTREAM_INVALID_HEADER;
+	}
 }
