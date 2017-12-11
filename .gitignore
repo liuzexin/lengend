@@ -1,2 +1,5 @@
 nginx-1.0.14/*
 !nginx-1.0.14/src/http/modules/ngx_http_mytest_module.c
+*.xml
+.idea/lengend.iml
+*.txt
