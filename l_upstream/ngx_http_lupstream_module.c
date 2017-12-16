@@ -95,7 +95,7 @@ static ngx_int_t ngx_http_lupstream_handler(ngx_http_request_t * r){
 
     r->upstream->create_request = lupstream_create_request;
     r->upstream->finalize_request = lupstream_finalize_request;
-    r->upstream->process_header = lupstream_process_header;
+    r->upstream->process_header = lupstream_process_status_line;
     r->main->count++;//ref counter
     ngx_http_upstream_init(r);
 	return NGX_DONE;
@@ -155,7 +155,7 @@ static void lupstream_finalize_request(ngx_http_request_t *r, ngx_int_t rc){
 	ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, 
 		"LUPSTREAM");
 }
-ngx_int_t lupstream_create_request(ngx_http_request_t *r){
+static ngx_int_t lupstream_create_request(ngx_http_request_t *r){
 	static ngx_str_t str q = ngx_string('GET / HTTP/1.1\r\nHost: www.baidu.com\r\nConnection:close\r\n\r\n');
 	ngx_buf_t *b = ngx_create_temp_buf(r->pool, q.len);
 	if (b == NULL){
@@ -178,6 +178,7 @@ ngx_int_t lupstream_create_request(ngx_http_request_t *r){
 	r->header_hash = 1;
 	return NGX_OK;
 }
+
 
 /**
 	The main utility only deal with http status code.
@@ -274,4 +275,49 @@ static ngx_int_t lupstream_process_header(ngx_http_request_t *r){
 			0, 'invalid heaeder!');
 		return NGX_HTTP_UPSTREAM_INVALID_HEADER;
 	}
+}
+
+
+static ngx_int_t lupstream_process_status_line(ngx_http_request_t *r){
+	size_t len;
+	ngx_int_t rc;
+	ngx_http_upstream_t *u;
+
+	ngx_http_lupstream_ctx_t *ctx = ngx_http_get_module_ctx(r, ngx_http_lupstream_module);
+	if (ctx == NULL)
+	{
+		return NGX_ERROR;
+	}
+
+	u = r->upstream;
+	rc = ngx_http_parse_status_line(r, &u->buffer, &ctx->status);
+	if (rc == NGX_AGIN)
+	{
+		return rc;
+	}
+
+	if (rc == NGX_ERROR)
+	{
+		r->http_version = NGX_HTTP_VERSION_9;
+		u->state->status = NGX_HTTP_OK;
+	}
+
+	if (u->state)
+	{
+		u->state->status = ctx->status.code;
+	}
+
+	u->headers_in.status_n = ctx->status.code;
+	len = ctx->status.end - ctx.status.start;
+	u->headers_in.status_line.len = len;
+
+	u->headers_in.status_line.data = ngx_pnalloc(r->pool, len);
+	if (u->headers_in.status_line.data == NULL)
+	{
+		return NGX_ERROR; 
+	}
+
+	ngx_memcpy(u->headers_in.status_line.data, ctx->status.start, len);
+	u->process_header = lupstream_process_header;
+	return lupstream_process_header(r);
 }
